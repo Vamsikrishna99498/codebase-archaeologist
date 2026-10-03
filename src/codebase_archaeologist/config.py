@@ -41,8 +41,9 @@ class Settings(BaseSettings):
     fetch_concurrency: int = 8  # parallel downloads == max files buffered in memory
     fetch_timeout_s: float = 30.0
     fetch_max_retries: int = 3
-    # Above this many files to fetch, one tarball beats N small requests.
-    tarball_threshold_files: int = 300
+    # Above this many files to fetch, one tarball beats N small requests
+    # (measured: 125 files took 6.9s raw vs 1.4s via tarball).
+    tarball_threshold_files: int = 50
     # TODO(phase-D): revisit together with max_total_bytes.
     max_tarball_bytes: int = 200 * 1024 * 1024
     # Abort the whole fetch if more than this fraction of files fail.
