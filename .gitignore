@@ -1,1 +1,25 @@
+# Secrets
 .env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local data (offline Chroma, scratch)
+data/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
