@@ -30,6 +30,7 @@ def f(path, size=100):
         ("proto/api_pb2.py", 100, "generated"),
         ("types/index.d.ts", 100, "generated"),
         ("data/huge.py", 501, "too_large"),
+        ("notebooks/plots.ipynb", 5_000, None),  # notebooks have their own, larger cap
         ("pkg/__init__.py", 0, "empty"),
     ],
 )

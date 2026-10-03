@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     max_files: int = 2_000
     max_total_bytes: int = 50 * 1024 * 1024
     max_file_bytes: int = 500 * 1024
+    # Notebooks are mostly embedded images/HTML that the reader strips in memory,
+    # so they get a separate, larger cap.
+    max_notebook_bytes: int = 10 * 1024 * 1024
 
     # --- Fetching (safety limits; keep memory bounded and failures contained) ---
     fetch_concurrency: int = 8  # parallel downloads == max files buffered in memory
@@ -49,8 +52,18 @@ class Settings(BaseSettings):
     # Abort the whole fetch if more than this fraction of files fail.
     max_failed_ratio: float = 0.2
 
+    # --- Chunking ---
+    chunk_tokens: int = 400  # bge-small reads at most 512 tokens incl. the header
+    chunk_overlap_tokens: int = 50
+    # Small-to-big: max tokens of parent context sent to the LLM per retrieved chunk.
+    parent_max_tokens: int = 1_200
+
     # --- Misc ---
     log_level: str = "INFO"
+
+    def max_bytes_for(self, path: str) -> int:
+        """Per-file byte cap for `path`."""
+        return self.max_notebook_bytes if path.lower().endswith(".ipynb") else self.max_file_bytes
 
 
 @lru_cache

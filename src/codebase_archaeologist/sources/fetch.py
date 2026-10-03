@@ -117,7 +117,7 @@ class GitHubFetcher:
     # --- accounting shared by both strategies ---
 
     def _accept(self, file: RemoteFile, data: bytes) -> FetchedFile | None:
-        if len(data) > self.s.max_file_bytes:
+        if len(data) > self.s.max_bytes_for(file.path):
             self.report.failed[file.path] = "too_large"
             return None
         if git_blob_sha(data) != file.blob_sha:
@@ -211,7 +211,7 @@ class GitHubFetcher:
                     if not resp.is_success:
                         self.report.failed[file.path] = f"http_{resp.status_code}"
                         return None
-                    return await self._read_capped(resp)
+                    return await self._read_capped(resp, self.s.max_bytes_for(file.path))
             except _FileTooLarge:
                 self.report.failed[file.path] = "too_large"
                 return None
@@ -223,11 +223,11 @@ class GitHubFetcher:
                 return None
         return None
 
-    async def _read_capped(self, resp: httpx.Response) -> bytes:
+    async def _read_capped(self, resp: httpx.Response, limit: int) -> bytes:
         buf = bytearray()
         async for chunk in resp.aiter_bytes():
             buf += chunk
-            if len(buf) > self.s.max_file_bytes:
+            if len(buf) > limit:
                 raise _FileTooLarge
         return bytes(buf)
 
@@ -273,7 +273,7 @@ class GitHubFetcher:
                         continue
                     # Archive entries are prefixed with "<owner>-<repo>-<sha>/".
                     path = member.name.split("/", 1)[-1]
-                    if path not in wanted or member.size > self.s.max_file_bytes:
+                    if path not in wanted or member.size > self.s.max_bytes_for(path):
                         continue
                     if (fh := tar.extractfile(member)) is not None:
                         data = fh.read()

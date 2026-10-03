@@ -55,7 +55,7 @@ def skip_reason(file: RemoteFile, settings: Settings) -> str | None:
         return "excluded_dir"
     if path.name.lower().endswith(EXCLUDED_SUFFIXES):
         return "generated"
-    if file.size > settings.max_file_bytes:
+    if file.size > settings.max_bytes_for(file.path):
         return "too_large"
     if file.size == 0:
         return "empty"
