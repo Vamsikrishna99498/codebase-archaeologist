@@ -151,7 +151,7 @@ def _read_notebook(raw: str, path: str) -> tuple[str, list[Unit]]:
         out.append(f"# [cell {i} · {kind}]")
         out.extend(source.splitlines())
         if rendered and rendered[0]:
-            out.append(f"# [cell {i} · output]")
+            out.append(f"# [output of cell {i}]")  # must not match the "# [cell " split marker
             out.extend(rendered[0].splitlines())
         units.append(Unit(start, len(out), f"cell {i}", 0))
         out.append("")
