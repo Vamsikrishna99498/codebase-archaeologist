@@ -28,14 +28,15 @@ flowchart LR
         FLT["File filters + size guard<br/>ext / vendored / generated"]
         FET["Fetcher: raw CDN or tarball stream<br/>byte caps, SHA integrity check,<br/>in memory only"]
         RED["Guardrail: secret + email redaction<br/>line numbers preserved"]
-        CHK["Readers + chunker<br/>line ranges, stable ids"]
+        RDR["Readers<br/>notebook cells + outputs,<br/>code/markdown structure, repo map"]
+        CHK["Chunker<br/>scopes, exact line ranges,<br/>small-to-big parent spans"]
         EMB["Embedder<br/>bge-small-en-v1.5 (local)"]
     end
 
     subgraph Answering["Answering pipeline"]
         GIN["Guardrail: input checks"]
         CON["Condense follow-up<br/>with chat history"]
-        RET["Retriever (MMR)"]
+        RET["Retriever (MMR)<br/>+ small-to-big parent expansion"]
         GCTX["Guardrail: relevance gate +<br/>context injection check"]
         LLM["LLM via OpenRouter<br/>(free models, fallback)"]
         GOUT["Guardrail: citation check +<br/>LLM groundedness judge"]
@@ -51,12 +52,12 @@ flowchart LR
     NB & CLI & ST & API --> APP
     APP --> GH
     APP --> GIN
-    GH --> FLT --> FET --> RED --> CHK --> EMB --> PG
+    GH --> FLT --> FET --> RDR --> RED --> CHK --> EMB --> PG
     GIN --> CON --> RET --> GCTX --> LLM --> GOUT
     PG --> RET
 
-    class CFG,GH,FLT,FET,RED done
-    class NB,CLI,ST,API,APP,CHK,EMB,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
+    class CFG,GH,FLT,FET,RDR,RED,CHK done
+    class NB,CLI,ST,API,APP,EMB,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
 ```
 
 ### Where data lives
