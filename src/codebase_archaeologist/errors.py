@@ -27,3 +27,7 @@ class RateLimitedError(ArchaeologistError):
 
 class RepoTooLargeError(ArchaeologistError):
     pass
+
+
+class FetchError(ArchaeologistError):
+    pass

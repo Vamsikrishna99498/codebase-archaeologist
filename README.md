@@ -26,7 +26,7 @@ flowchart LR
     subgraph Indexing["Indexing job (resumable)"]
         GH["GitHub tree listing<br/>path, size, blob SHA<br/>(no clone)"]
         FLT["File filters + size guard<br/>ext / vendored / generated"]
-        FET["Streamed fetch<br/>changed files only, in memory"]
+        FET["Fetcher: raw CDN or tarball stream<br/>byte caps, SHA integrity check,<br/>in memory only"]
         RED["Guardrail: secret + PII redaction"]
         CHK["Readers + chunker<br/>line ranges, stable ids"]
         EMB["Embedder<br/>bge-small-en-v1.5 (local)"]
@@ -55,8 +55,8 @@ flowchart LR
     GIN --> CON --> RET --> GCTX --> LLM --> GOUT
     PG --> RET
 
-    class CFG,GH,FLT done
-    class NB,CLI,ST,API,APP,FET,RED,CHK,EMB,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
+    class CFG,GH,FLT,FET done
+    class NB,CLI,ST,API,APP,RED,CHK,EMB,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
 ```
 
 ### Where data lives

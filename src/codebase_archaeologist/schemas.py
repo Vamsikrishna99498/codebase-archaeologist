@@ -40,3 +40,14 @@ class RepoSnapshot(BaseModel):
     ref: str
     commit_sha: str
     files: list[RemoteFile]
+
+
+class FetchedFile(BaseModel):
+    """A file's decoded contents, held in memory only."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    blob_sha: str
+    text: str
+    size: int

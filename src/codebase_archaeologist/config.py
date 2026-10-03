@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     max_total_bytes: int = 50 * 1024 * 1024
     max_file_bytes: int = 500 * 1024
 
+    # --- Fetching (safety limits; keep memory bounded and failures contained) ---
+    fetch_concurrency: int = 8  # parallel downloads == max files buffered in memory
+    fetch_timeout_s: float = 30.0
+    fetch_max_retries: int = 3
+    # Above this many files to fetch, one tarball beats N small requests.
+    tarball_threshold_files: int = 300
+    # TODO(phase-D): revisit together with max_total_bytes.
+    max_tarball_bytes: int = 200 * 1024 * 1024
+    # Abort the whole fetch if more than this fraction of files fail.
+    max_failed_ratio: float = 0.2
+
     # --- Misc ---
     log_level: str = "INFO"
 
