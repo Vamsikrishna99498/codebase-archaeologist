@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -73,3 +76,36 @@ class Chunk(BaseModel):
     text: str
     embed_text: str
     token_count: int
+
+
+class SearchHit(BaseModel):
+    chunk: Chunk
+    score: float  # cosine similarity, higher is better
+    vector: list[float] | None = None  # returned on request, e.g. for MMR re-ranking
+
+
+JobStatus = Literal["queued", "running", "succeeded", "failed"]
+
+
+class RepoRecord(BaseModel):
+    slug: str
+    full_name: str
+    ref: str
+    indexed_sha: str | None = None
+    embedding_model: str
+    file_count: int = 0
+    chunk_count: int = 0
+    indexed_at: datetime | None = None
+
+
+class IndexJob(BaseModel):
+    id: str
+    repo: str  # RepoRecord.slug
+    commit_sha: str
+    status: JobStatus = "queued"
+    files_total: int = 0
+    files_done: int = 0
+    chunks_written: int = 0
+    error: str | None = None
+    started_at: datetime
+    updated_at: datetime

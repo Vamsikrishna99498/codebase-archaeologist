@@ -30,7 +30,7 @@ flowchart LR
         RED["Guardrail: secret + email redaction<br/>line numbers preserved"]
         RDR["Readers<br/>notebook cells + outputs,<br/>code/markdown structure, repo map"]
         CHK["Chunker<br/>scopes, exact line ranges,<br/>small-to-big parent spans"]
-        EMB["Embedder<br/>bge-small-en-v1.5 (local)"]
+        EMB["Embedder<br/>bge-small-en-v1.5<br/>fastembed ONNX, local CPU"]
     end
 
     subgraph Answering["Answering pipeline"]
@@ -42,8 +42,9 @@ flowchart LR
         GOUT["Guardrail: citation check +<br/>LLM groundedness judge"]
     end
 
-    subgraph Storage["Supabase Postgres"]
-        PG[("pgvector: chunks + embeddings<br/>tables: repos, files, index_jobs")]
+    subgraph Storage["Storage interface: VectorStore + MetadataStore"]
+        PG[("Supabase Postgres + pgvector<br/>chunks, embeddings,<br/>repos, files, index_jobs")]
+        MEM["In-memory backend<br/>(tests only)"]
     end
 
     APP["Archaeologist facade<br/>index() / ask()"]
@@ -56,8 +57,8 @@ flowchart LR
     GIN --> CON --> RET --> GCTX --> LLM --> GOUT
     PG --> RET
 
-    class CFG,GH,FLT,FET,RDR,RED,CHK done
-    class NB,CLI,ST,API,APP,EMB,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
+    class CFG,GH,FLT,FET,RDR,RED,CHK,EMB,MEM done
+    class NB,CLI,ST,API,APP,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
 ```
 
 ### Where data lives
