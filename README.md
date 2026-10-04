@@ -43,7 +43,7 @@ flowchart LR
     end
 
     subgraph Storage["Storage interface: VectorStore + MetadataStore"]
-        PG[("Supabase Postgres + pgvector<br/>chunks, embeddings,<br/>repos, files, index_jobs")]
+        PG[("Supabase Postgres + pgvector<br/>private schema, RLS on, HNSW index<br/>chunks, repos, files, index_jobs")]
         MEM["In-memory backend<br/>(tests only)"]
     end
 
@@ -57,8 +57,8 @@ flowchart LR
     GIN --> CON --> RET --> GCTX --> LLM --> GOUT
     PG --> RET
 
-    class CFG,GH,FLT,FET,RDR,RED,CHK,EMB,MEM done
-    class NB,CLI,ST,API,APP,GIN,CON,RET,GCTX,LLM,GOUT,PG planned
+    class CFG,GH,FLT,FET,RDR,RED,CHK,EMB,MEM,PG done
+    class NB,CLI,ST,API,APP,GIN,CON,RET,GCTX,LLM,GOUT planned
 ```
 
 ### Where data lives
@@ -78,11 +78,36 @@ flowchart LR
 - **Phase C:** FastAPI service with background indexing workers, Docker
 - **Phase D:** scale-up: tree-sitter chunking, hybrid search + reranking, symbol index, agentic retrieval
 
-## Development
+## Setup
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
-cp .env.example .env   # fill in your keys
+cp .env.example .env   # fill in your keys (see below)
+.venv/bin/python scripts/check_env.py   # verifies keys/DB without printing secrets
+```
+
+**Supabase (free tier).** Create a project, enable the `vector` extension
+(Database → Extensions), and put the **Session pooler** connection string in
+`SUPABASE_DB_URL`. Tables are created automatically on first connection in a
+private `archaeologist` schema that Supabase's public REST API does not expose,
+with row-level security enabled as a second layer. Use a letters-and-digits
+database password (characters such as `@` break the URL). Some networks block
+outbound port 5432; if the check times out, try another network.
+
+**GitHub.** A fine-grained token with read-only access to public repositories
+raises the API limit from 60 to 5,000 requests/hour.
+
+## Development
+
+```bash
 .venv/bin/ruff check . && .venv/bin/pytest -q
 ```
+
+Storage tests run against an in-memory backend and, when `SUPABASE_DB_URL` is
+set and reachable, against Supabase too (each test uses a unique repo and
+cleans up).
+
+## License
+
+Copyright (c) 2026 Vamsikrishna99498. All rights reserved.

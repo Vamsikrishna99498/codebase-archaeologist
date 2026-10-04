@@ -140,3 +140,12 @@ def test_jobs_lifecycle(metadata_store, repo):
     assert metadata_store.latest_job(repo).id == second.id
     assert metadata_store.get_job(first.id).error == "boom"
     assert metadata_store.get_job("nope") is None
+
+
+def test_factory_falls_back_to_memory_without_url():
+    from codebase_archaeologist.config import Settings
+    from codebase_archaeologist.storage.factory import open_stores
+    from codebase_archaeologist.storage.memory import InMemoryVectorStore
+
+    vs, _ = open_stores(Settings(_env_file=None, supabase_db_url=None))
+    assert isinstance(vs, InMemoryVectorStore)
