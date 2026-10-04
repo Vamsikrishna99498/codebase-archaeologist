@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_query_prefix: str = "Represent this sentence for searching relevant passages: "
     embedding_batch_size: int = 32
+    embedding_dim: int = 384  # must match the vector(384) column in the migrations
 
     # --- Ingestion ---
     allowed_extensions: frozenset[str] = Field(
@@ -59,6 +60,11 @@ class Settings(BaseSettings):
     chunk_overlap_tokens: int = 50
     # Small-to-big: max tokens of parent context sent to the LLM per retrieved chunk.
     parent_max_tokens: int = 1_200
+
+    # --- Indexing ---
+    # Chunks are embedded and stored in batches of about this size; a file's SHA is
+    # recorded only after its chunks are stored, so an interrupted job resumes cleanly.
+    index_batch_chunks: int = 128
 
     # --- Misc ---
     log_level: str = "INFO"
