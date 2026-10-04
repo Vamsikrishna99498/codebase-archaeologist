@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     # --- Embeddings ---
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_query_prefix: str = "Represent this sentence for searching relevant passages: "
+    embedding_batch_size: int = 32
 
     # --- Ingestion ---
     allowed_extensions: frozenset[str] = Field(
