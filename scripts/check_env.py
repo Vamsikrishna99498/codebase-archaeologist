@@ -14,9 +14,12 @@ def _is_set(value) -> bool:
 
 def main() -> None:
     s = Settings()
-    for name in ("supabase_db_url", "github_token", "openrouter_api_key"):
-        print(f"{name.upper():20} {'set' if _is_set(getattr(s, name)) else 'missing'}")
+    for name in ("supabase_db_url", "supabase_service_key", "github_token", "openrouter_api_key"):
+        print(f"{name.upper():22} {'set' if _is_set(getattr(s, name)) else 'missing'}")
+    print(f"{'SUPABASE_URL':22} {'set' if s.supabase_url else 'missing'}")
 
+    if s.supabase_url and _is_set(s.supabase_service_key):
+        _check_rest(s)
     if not _is_set(s.supabase_db_url):
         return
     import psycopg
@@ -34,6 +37,20 @@ def main() -> None:
         print(f"Supabase: connected (Postgres {version}); pgvector installed: {row and row[0]}")
     except Exception as exc:  # never echo driver messages: they can contain URL fragments
         print(f"Supabase: connection failed ({type(exc).__name__}); check host, password, port")
+
+
+def _check_rest(s: Settings) -> None:
+    from codebase_archaeologist.storage.rest import RestClient
+
+    client = RestClient(s.supabase_url, s.supabase_service_key.get_secret_value())
+    try:
+        n = client.count("repos", {})
+        print(f"Supabase HTTPS: connected; {n} indexed repo(s) visible")
+    except Exception as exc:
+        # REST error bodies carry no credentials; show the status-code part only.
+        print(f"Supabase HTTPS: failed ({type(exc).__name__}: {str(exc)[:120]})")
+    finally:
+        client.close()
 
 
 if __name__ == "__main__":

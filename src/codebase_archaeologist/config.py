@@ -7,6 +7,7 @@ Every setting can be overridden with an environment variable of the same name
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +20,13 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr | None = None
     github_token: SecretStr | None = None
     supabase_db_url: SecretStr | None = None
+    # HTTPS access (REST API) for networks that block Postgres ports.
+    supabase_url: str | None = None  # https://<project-ref>.supabase.co
+    supabase_service_key: SecretStr | None = None  # secret / service_role key: server-side only
+
+    # --- Storage ---
+    # auto: direct Postgres if reachable, else HTTPS REST if configured, else in-memory.
+    storage_backend: Literal["auto", "postgres", "rest", "memory"] = "auto"
 
     # --- LLM ---
     openrouter_base_url: str = "https://openrouter.ai/api/v1"

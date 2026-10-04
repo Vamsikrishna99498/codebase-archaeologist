@@ -44,6 +44,7 @@ flowchart LR
 
     subgraph Storage["Storage interface: VectorStore + MetadataStore"]
         PG[("Supabase Postgres + pgvector<br/>private schema, RLS on, HNSW index<br/>chunks, repos, files, index_jobs")]
+        REST["Supabase over HTTPS<br/>REST API + match_chunks RPC<br/>(auto when port 5432 is blocked)"]
         MEM["In-memory backend<br/>(tests only)"]
     end
 
@@ -54,10 +55,12 @@ flowchart LR
     APP --> GH
     APP --> GIN
     GH --> FLT --> FET --> RDR --> RED --> CHK --> EMB --> PG
+    EMB -.-> REST
     GIN --> CON --> RET --> GCTX --> LLM --> GOUT
     PG --> RET
+    REST -.-> RET
 
-    class CFG,GH,FLT,FET,RDR,RED,CHK,EMB,MEM,PG done
+    class CFG,GH,FLT,FET,RDR,RED,CHK,EMB,MEM,PG,REST done
     class NB,CLI,ST,API,APP,GIN,CON,RET,GCTX,LLM,GOUT planned
 ```
 
@@ -93,7 +96,11 @@ cp .env.example .env   # fill in your keys (see below)
 private `archaeologist` schema that Supabase's public REST API does not expose,
 with row-level security enabled as a second layer. Use a letters-and-digits
 database password (characters such as `@` break the URL). Some networks block
-outbound port 5432; if the check times out, try another network.
+outbound port 5432. For those, also set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+(Project Settings → API Keys; the secret key stays server-side), add
+`archaeologist` under Data API → Exposed schemas, and the app switches to
+Supabase's HTTPS API automatically. Only the secret key can use that schema;
+the public anon key has no grants.
 
 **GitHub.** A fine-grained token with read-only access to public repositories
 raises the API limit from 60 to 5,000 requests/hour.
