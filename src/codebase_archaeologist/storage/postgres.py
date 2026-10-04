@@ -16,6 +16,7 @@ from psycopg import Connection
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from codebase_archaeologist.ingestion.chunking import build_embed_text
 from codebase_archaeologist.log import get_logger
 from codebase_archaeologist.schemas import Chunk, IndexJob, RepoRecord, SearchHit
 
@@ -24,8 +25,17 @@ log = get_logger(__name__)
 SCHEMA = "archaeologist"
 _CHUNK_COLUMNS = (
     "id, repo, path, blob_sha, language, chunk_index, start_line, end_line, "
-    "parent_start_line, parent_end_line, scope, text, embed_text, token_count"
+    "parent_start_line, parent_end_line, scope, text, token_count"
 )
+# Column types for binary COPY, in _CHUNK_COLUMNS order plus the embedding.
+_CHUNK_COPY_TYPES = [
+    *["text"] * 5,
+    *["int4"] * 5,
+    "text",
+    "text",
+    "int4",
+    "vector",
+]
 
 
 def _configure(conn: Connection) -> None:
@@ -76,7 +86,11 @@ def migrate(url: str) -> list[str]:
 
 
 def _row_to_chunk(row: dict) -> Chunk:
-    return Chunk(**{k: row[k] for k in Chunk.model_fields})
+    fields = {k: row[k] for k in Chunk.model_fields if k != "embed_text"}
+    embed_text = build_embed_text(
+        row["path"], row["start_line"], row["end_line"], row["language"], row["scope"], row["text"]
+    )
+    return Chunk(**fields, embed_text=embed_text)
 
 
 class PostgresVectorStore:
@@ -89,23 +103,25 @@ class PostgresVectorStore:
         if not chunks:
             return
         cols = _CHUNK_COLUMNS + ", embedding"
-        placeholders = ", ".join(["%s"] * (cols.count(",") + 1))
-        updates = ", ".join(
-            f"{c.strip()} = excluded.{c.strip()}" for c in cols.split(",") if c.strip() != "id"
-        )
-        sql = (
-            f"insert into chunks ({cols}) values ({placeholders}) "
-            f"on conflict (id) do update set {updates}"
-        )
-        rows = [
-            (
-                *(getattr(c, name.strip()) for name in _CHUNK_COLUMNS.split(",")),
-                np.asarray(v, dtype=np.float32),
+        names = [c.strip() for c in cols.split(",")]
+        updates = ", ".join(f"{c} = excluded.{c}" for c in names if c != "id")
+        # Bulk path: COPY into a temp table, then one INSERT ... ON CONFLICT merge.
+        # Row-by-row inserts cost a network round trip each (slow over the pooler).
+        with self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
+            cur.execute(
+                "create temp table chunks_stage (like chunks including defaults) on commit drop"
             )
-            for c, v in zip(chunks, vectors, strict=True)
-        ]
-        with self.pool.connection() as conn, conn.cursor() as cur:
-            cur.executemany(sql, rows)
+            # Binary COPY: vectors travel as 1.5 KB of float32 instead of ~4 KB of text.
+            with cur.copy(f"copy chunks_stage ({cols}) from stdin (format binary)") as copy:
+                copy.set_types(_CHUNK_COPY_TYPES)
+                for c, v in zip(chunks, vectors, strict=True):
+                    copy.write_row(
+                        [*(getattr(c, n) for n in names[:-1]), np.asarray(v, dtype=np.float32)]
+                    )
+            cur.execute(
+                f"insert into chunks ({cols}) select {cols} from chunks_stage "
+                f"on conflict (id) do update set {updates}"
+            )
 
     def delete_files(self, repo: str, paths: list[str]) -> int:
         if not paths:

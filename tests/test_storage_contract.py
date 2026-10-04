@@ -9,6 +9,7 @@ import uuid
 
 import pytest
 
+from codebase_archaeologist.ingestion.chunking import build_embed_text
 from codebase_archaeologist.schemas import Chunk, RepoRecord
 
 
@@ -21,6 +22,7 @@ def repo(vector_store, metadata_store):
 
 
 def chunk(repo: str, path: str, idx: int, start: int, end: int, text: str = "x") -> Chunk:
+    scope = None if idx % 2 else f"def f{idx}"
     return Chunk(
         id=f"{repo}-{path}-{idx}",
         repo=repo,
@@ -32,9 +34,9 @@ def chunk(repo: str, path: str, idx: int, start: int, end: int, text: str = "x")
         end_line=end,
         parent_start_line=start,
         parent_end_line=end,
-        scope=None if idx % 2 else f"def f{idx}",
+        scope=scope,
         text=text,
-        embed_text=f"File: {path}\n\n{text}",
+        embed_text=build_embed_text(path, start, end, "python", scope, text),
         token_count=3,
     )
 

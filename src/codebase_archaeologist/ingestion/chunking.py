@@ -24,6 +24,17 @@ _SPLITTER_LANGUAGES = {
 }
 
 
+def build_embed_text(
+    path: str, start: int, end: int, language: str, scope: str | None, text: str
+) -> str:
+    """Contextual header + chunk text. Deterministic, so storage can rebuild it
+    from the chunk's fields instead of storing the text twice."""
+    header = f"File: {path} (lines {start}-{end})\nLanguage: {language}"
+    if scope:
+        header += f"\nScope: {scope}"
+    return f"{header}\n\n{text}"
+
+
 def chunk_id(repo: RepoRef, path: str, blob_sha: str, index: int) -> str:
     """Stable id: unchanged files keep their chunk ids across re-indexes."""
     return hashlib.sha1(f"{repo.slug}|{path}|{blob_sha}|{index}".encode()).hexdigest()
@@ -46,10 +57,7 @@ class Chunker:
             whole_file = (1, len(lines))
             parent = whole_file if file_fits else self._parent_span(doc.units, spans, i, lines)
             scope = _scope(doc.units, start)
-            header = f"File: {doc.path} (lines {start}-{end})\nLanguage: {doc.language}"
-            if scope:
-                header += f"\nScope: {scope}"
-            embed_text = f"{header}\n\n{piece}"
+            embed_text = build_embed_text(doc.path, start, end, doc.language, scope, piece)
             chunks.append(
                 Chunk(
                     id=chunk_id(repo, doc.path, doc.blob_sha, i),

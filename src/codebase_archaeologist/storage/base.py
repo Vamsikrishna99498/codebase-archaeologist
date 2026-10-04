@@ -11,7 +11,9 @@ from codebase_archaeologist.schemas import Chunk, IndexJob, RepoRecord, SearchHi
 
 class VectorStore(Protocol):
     def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
-        """Insert or replace chunks by id."""
+        """Insert or replace chunks by id. `Chunk.embed_text` must equal
+        chunking.build_embed_text(...) of the chunk's fields; backends may store
+        only the fields and rebuild it."""
         ...
 
     def delete_files(self, repo: str, paths: list[str]) -> int:
